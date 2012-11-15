@@ -80,7 +80,7 @@
   (cl-ppcre:regex-replace-all " {3,}" (cl-ppcre:regex-replace-all "[\\t\\n]" comment " ") " "))
 
 (defun need-to-define-wait-suffix-p (name)
-  (find name (list "click" "select" "type") :test #'string=))
+  (find name (list "click" "select" "type" "open") :test #'string=))
 
 (defun parse-iedoc (pathname)
   (let ((document (cxml:parse-file pathname (cxml-dom:make-dom-builder))))
