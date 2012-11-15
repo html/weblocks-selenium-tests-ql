@@ -38,6 +38,19 @@
                                   (when (plusp (length return-elements))
                                     (make-iedoc-return-type (elt return-elements 0)))))))
 
+(defun make-iedoc-function-with-wait-prefix (e)
+  (let ((name (concatenate 'string 
+                           (dom:get-attribute e "name")
+                           "AndWait")))
+    (make-instance 'iedoc-function
+		   :name name
+		   :parameters (loop for p across (dom:get-elements-by-tag-name e "param")
+				  collect (make-iedoc-parameter p))
+		   :comment (make-iedoc-comment (elt (dom:get-elements-by-tag-name e "comment") 0))
+                   :return-type (let ((return-elements (dom:get-elements-by-tag-name e "return")))
+                                  (when (plusp (length return-elements))
+                                    (make-iedoc-return-type (elt return-elements 0)))))))
+
 (defun make-iedoc-parameter (e)
   (let ((name (dom:get-attribute e "name")))
     (make-instance 'iedoc-parameter
@@ -66,10 +79,17 @@
 (defun normalize-comment (comment)
   (cl-ppcre:regex-replace-all " {3,}" (cl-ppcre:regex-replace-all "[\\t\\n]" comment " ") " "))
 
+(defun need-to-define-wait-suffix-p (name)
+  (find name (list "click" "select" "type") :test #'string=))
+
 (defun parse-iedoc (pathname)
   (let ((document (cxml:parse-file pathname (cxml-dom:make-dom-builder))))
-    (loop for e across (dom:get-elements-by-tag-name document "function")
-       collect (make-iedoc-function e))))
+    (append 
+      (loop for e across (dom:get-elements-by-tag-name document "function")
+            collect (make-iedoc-function e))
+      (loop for e across (dom:get-elements-by-tag-name document "function")
+            if (need-to-define-wait-suffix-p (dom:get-attribute e "name"))
+            collect (make-iedoc-function-with-wait-prefix e)))))
 
 (defun convert-function-name (name)
   (intern (concatenate 'string "DO-" (string-upcase (cl-ppcre:regex-replace-all "([A-Z])" name "-\\1"))) "SELENIUM"))
